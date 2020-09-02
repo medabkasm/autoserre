@@ -55,17 +55,18 @@ def esp_authentication(clientConnection,user=userMD5,password=passwordMD5):
         userName , password = userNamePassword.split("--")
     except:
         return -1
-        
+
     userNameMD5 = hashlib.md5(userName.encode("ascii")).digest()
     password_MD5 = hashlib.md5(password.encode("ascii")).digest()
     print(userName,password)
     print("authentication request form : {} at {} ".format(userName,datetime.now()))
     if userNameMD5 == userMD5 and password_MD5 == passwordMD5:
-        clientConnection.send("1".encode("ascii"))
+        clientConnection.send("0".encode("ascii"))
     else:
         clientConnection.send("-1".encode("ascii"))
-        return -1
+        return -2
 
+    print("connecting with {} :: {}\n".format(userName,datetime.now()))
     return 0
 
 
