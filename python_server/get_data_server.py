@@ -5,69 +5,74 @@ from datetime import datetime
 HOST = '127.0.0.1'  # Standard loopback interface address (localhost)
 PORT = 65432        # Port to listen on
 
-user ="mohamed"
-passwordd = "1234"
-userMD5 = hashlib.md5(user.encode("ascii")).digest()
-passwordMD5 = hashlib.md5(passwordd.encode("ascii")).digest()
 
-def test_authentication(clientConnection): # function responsibles for authentication phase
+class Authentication:
 
-    attempts = 3 # login attempts number
+    def __init__(self,clientConnection,user,password):
+        self.user = user
+        self.password = password
+        self.userMD5 = hashlib.md5(user.encode("ascii")).digest()
+        self.passMD5 = hashlib.md5(user.encode("ascii")).digest()
+        self.clientConnection = clientConnection
 
-    while True:
-        clientConnection.send("\nuser name : ".encode("ascii"))
-        userName = clientConnection.recv(1024) # get user name from ESP client
-        userName = userName.decode().rstrip("\r\n") # decode string from binary(Bytes) to ascii and remove \r\n from the end of the it
+    def test_authentication(self): # function responsibles for authentication phase
 
-        print("authentication request form : {} at {} ".format(userName,datetime.now()))
+        attempts = 3 # login attempts number
 
-        if userName == user:
-            clientConnection.send("password : ".encode())
-            password = clientConnection.recv(1024)
-            password = password.decode("ascii").rstrip("\r\n")
-            if password == passwordd:
-                clientConnection.send("\nstart receiving data ...\n".encode("ascii"))
-                return 0
+        while True:
+            clientConnection.send("\nuser name : ".encode("ascii"))
+            userName = clientConnection.recv(1024) # get user name from ESP client
+            userName = userName.decode().rstrip("\r\n") # decode string from binary(Bytes) to ascii and remove \r\n from the end of the it
+
+            print("authentication request from : {} at {} ".format(userName,datetime.now()))
+
+            if userName == self.user:
+                self.clientConnection.send("password : ".encode("ascii"))
+                passwordd = self.clientConnection.recv(1024)
+                passwordd = passwordd.decode("ascii").rstrip("\r\n")
+                if passwordd == self.password:
+                    self.clientConnection.send("\nauthentication done ...\n".encode("ascii"))
+                    print("connecting with {} :: {}\n".format(userName,datetime.now()))
+                    return 0
+                else:
+                    self.clientConnection.send("\npassword incorrect".encode("ascii"))
+                    if attempts > 0:
+                        attempts = attempts - 1
+                        continue
+                    else:
+                        self.clientConnection.send("\nauthentication failed".encode("ascii"))
+                        self.clientConnection.close()
+                        return -2
             else:
-                clientConnection.send("\npassword incorrect".encode("ascii"))
                 if attempts > 0:
                     attempts = attempts - 1
+                    self.clientConnection.send("\ninvalid username".encode("ascii"))
                     continue
                 else:
-                    clientConnection.send("\nauthentication failed".encode("ascii"))
-                    clientConnection.close()
-                    return -2
+                    self.clientConnection.send("\nauthentication failed".encode("ascii"))
+                    self.clientConnection.close()
+                    return -1
+
+
+    def esp_authentication(self):
+        userNamePassword = self.clientConnection.recv(1024) # get user name from ESP client
+        userNamePassword = userNamePassword.decode().rstrip("\r\n") # decode string from binary(Bytes) to ascii and remove \r\n from the end of the it
+        try:
+            userName , password = userNamePassword.split("--")
+        except:
+            return -1
+
+        userNameMD5 = hashlib.md5(userName.encode("ascii")).digest()
+        password_MD5 = hashlib.md5(password.encode("ascii")).digest()
+        print("authentication request from : {} at {} ".format(userName,datetime.now()))
+        if userNameMD5 == userMD5 and password_MD5 == passwordMD5:
+            self.clientConnection.send("0".encode("ascii"))
         else:
-            if attempts > 0:
-                attempts = attempts - 1
-                clientConnection.send("\ninvalid iusername".encode("ascii"))
-                continue
-            else:
-                clientConnection.send("\nauthentication failed".encode("ascii"))
-                clientConnection.close()
-                return -1
+            self.clientConnection.send("-1".encode("ascii"))
+            return -2
 
-
-def esp_authentication(clientConnection,user=userMD5,password=passwordMD5):
-    userNamePassword = clientConnection.recv(1024) # get user name from ESP client
-    userNamePassword = userNamePassword.decode().rstrip("\r\n") # decode string from binary(Bytes) to ascii and remove \r\n from the end of the it
-    try:
-        userName , password = userNamePassword.split("--")
-    except:
-        return -1
-
-    userNameMD5 = hashlib.md5(userName.encode("ascii")).digest()
-    password_MD5 = hashlib.md5(password.encode("ascii")).digest()
-    print(userName,password)
-    print("authentication request form : {} at {} ".format(userName,datetime.now()))
-    if userNameMD5 == userMD5 and password_MD5 == passwordMD5:
-        clientConnection.send("0".encode("ascii"))
-    else:
-        clientConnection.send("-1".encode("ascii"))
-        return -2
-
-    print("connecting with {} :: {}\n".format(userName,datetime.now()))
-    return 0
+        print("connecting with {} :: {}\n".format(userName,datetime.now()))
+        return 0
 
 
 with socket.socket(socket.AF_INET,socket.SOCK_STREAM) as serverSocket:
@@ -75,7 +80,8 @@ with socket.socket(socket.AF_INET,socket.SOCK_STREAM) as serverSocket:
     serverSocket.bind((HOST,PORT)) # bind the socket to the specified host,port
     serverSocket.listen(1) # listen the only client(ESP)
     clientConnection , clientAddress = serverSocket.accept() # accepting the ESP connection
-    authStatus = esp_authentication(clientConnection) # begin authentication phase
+    authObj = Authentication(clientConnection,"mohamed","1234") # create Authentication object
+    authStatus = authObj.test_authentication() # begin authentication phase
     if authStatus == 0:
             while True:
                 data = clientConnection.recv(1024)
