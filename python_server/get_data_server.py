@@ -5,22 +5,23 @@ import csv
 
 HOST = '127.0.0.1'  # Standard loopback interface address (localhost)
 PORT = 65432        # Port to listen on
+USERNAME = "mohamed"  # predefined username and passowrd
+PASSWORD = "1234"
+userMD5 = hashlib.md5(USERNAME.encode("ascii")).digest()
+passwordMD5 = hashlib.md5(PASSWORD.encode("ascii")).digest()
 
-userMD5 = hashlib.md5("mohamed".encode("ascii")).digest()
-passwordMD5 = hashlib.md5("1234".encode("ascii")).digest()
-
-class Authentication:
+class Authentication: # class responsible for authentication phase
 
     def __init__(self,clientConnection,user,password):
         self.user = user
         self.password = password
         self.userMD5 = hashlib.md5(self.user.encode("ascii")).digest()
         self.passMD5 = hashlib.md5(self.password.encode("ascii")).digest()
-        self.clientConnection = clientConnection
+        self.clientConnection = clientConnection # bounded socket
 
     def test_authentication(self): # function responsibles for authentication phase
 
-        attempts = 3 # login attempts number
+        attempts = 3 # login attempts number to prevent bruteforce attack
 
         while True:
             clientConnection.send("\nuser name : ".encode("ascii"))
@@ -61,7 +62,7 @@ class Authentication:
         userNamePassword = self.clientConnection.recv(1024) # get user name from ESP client
         userNamePassword = userNamePassword.decode().rstrip("\r\n") # decode string from binary(Bytes) to ascii and remove \r\n from the end of the it
         try:
-            userName , password = userNamePassword.split("--") # separate between username and password
+            userName , password = userNamePassword.split("--") # separate between username and password  , eg: username--password
         except:
             return -1
 
@@ -86,29 +87,28 @@ class Saving:
 
     def create_file(self):
         try:
-            self.csvDataFile = open(self.fileName,'w') # didn't use 'with' statement for future use of the open file
-            self.csvWriter = csv.writer(self.csvDataFile,delimiter = ',')
+            self.__csvDataFile = open(self.fileName,'w') # didn't use 'with' statement for future use of the open file
+            self.__csvWriter = csv.writer(self.__csvDataFile,delimiter = ',')
             print("csv file {} created".format(self.fileName))
-            return self.csvWriter
+            return 0
         except Exception as err:
             print("Error with opening csv file :: {}".format(str(err)))
+            return -1
 
-    def add_data(self,data):
+    def add_rows(self,data):
         try:
-            self.csvWriter.writerows(data) # use the open writer from the create_file methode
-            return 1
+            self.__csvWriter.writerows(data) # use the open writer from the create_file methode
+            return 0
         except Exception as err :
             print("Error with adding rows :: {}".format(str(err)))
             return -1
 
 
 
-
-
 with socket.socket(socket.AF_INET,socket.SOCK_STREAM) as serverSocket:
     serverSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) # ensuer reusability of socket connection
     serverSocket.bind((HOST,PORT)) # bind the socket to the specified host,port
-    serverSocket.listen(1) # listen the only client(ESP)
+    serverSocket.listen(1) # listen to the only client(ESP)
     clientConnection , clientAddress = serverSocket.accept() # accepting the ESP connection
     authObj = Authentication(clientConnection,"mohamed","1234") # create Authentication object
     authStatus = authObj.esp_authentication() # begin authentication phase
@@ -116,19 +116,21 @@ with socket.socket(socket.AF_INET,socket.SOCK_STREAM) as serverSocket:
     if authStatus == 0:
 
         savingData = Saving("data.csv")
-        csvWriter = savingData.create_file()
+        csvWriterStatus = savingData.create_file()
 
-        if csvWriter != -1:
+        txtFile = open("data.txt","w")
+
+        if csvWriterStatus != -1:
             while True:
                 data = clientConnection.recv(1024)
                 data = data.decode().rstrip("\r\n") # decode incoming data from binary(Bytes) to ascii
-                rowData = ["HUM%",data,str(datetime.now())]
-                txtData = "HUM%" + " , " + data + " , " + str(datetime.now()) + "\n"
-                savingData.add_data(rowData) # store data in the csv file
-                pdfFile.write(pdfData) # store data in text file
                 try:
+                    rowData = ["HUM%",data,str(datetime.now())]
+                    txtData = "HUM%" + " , " + data + " , " + str(datetime.now()) + "\n"
+                    savingData.add_data(rowData) # store data in the csv file
+                    txtFile.write(pdfData) # store data in text file
                     print(rowData)
-                except:
-                    print("invalid data")
+                except Exception as err:
+                    print("Error with storing data :: {}".format(str(err)))
     else:
         print("authentication failed")
