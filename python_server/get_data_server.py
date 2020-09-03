@@ -58,11 +58,10 @@ class Authentication:
 
 
     def esp_authentication(self):
-        userNamePassword = self.clientConnection.recv(4092) # get user name from ESP client
+        userNamePassword = self.clientConnection.recv(1024) # get user name from ESP client
         userNamePassword = userNamePassword.decode().rstrip("\r\n") # decode string from binary(Bytes) to ascii and remove \r\n from the end of the it
-        print(userNamePassword)
         try:
-            userName , password = userNamePassword.split("--")
+            userName , password = userNamePassword.split("--") # separate between username and password
         except:
             return -1
 
@@ -70,9 +69,9 @@ class Authentication:
         password_MD5 = hashlib.md5(password.encode("ascii")).digest()
         print("authentication request from : {} at {} ".format(userName,datetime.now()))
         if userNameMD5 == userMD5 and password_MD5 == passwordMD5:
-            self.clientConnection.send("1".encode("ascii"))
+            self.clientConnection.send("1".encode("ascii")) # connection flag , 1 for connected
         else:
-            self.clientConnection.send("-1".encode("ascii"))
+            self.clientConnection.send("-1".encode("ascii")) # connection flag , -1 for connection failed ,bad authentication
             return -2
 
         print("connecting with {} :: {}\n".format(userName,datetime.now()))
@@ -115,16 +114,16 @@ with socket.socket(socket.AF_INET,socket.SOCK_STREAM) as serverSocket:
     authStatus = authObj.esp_authentication() # begin authentication phase
     # test data receiving
     if authStatus == 0:
+
         savingData = Saving("data.csv")
         csvWriter = savingData.create_file()
-        i = 0
-        pdfFile = open("dataFile.txt",'w')
+
         if csvWriter != -1:
             while True:
                 data = clientConnection.recv(1024)
                 data = data.decode().rstrip("\r\n") # decode incoming data from binary(Bytes) to ascii
                 rowData = ["HUM%",data,str(datetime.now())]
-                pdfData = "HUM%" + " , " + data + " , " + str(datetime.now()) + "\n"
+                txtData = "HUM%" + " , " + data + " , " + str(datetime.now()) + "\n"
                 savingData.add_data(rowData) # store data in the csv file
                 pdfFile.write(pdfData) # store data in text file
                 try:
