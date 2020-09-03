@@ -1,6 +1,7 @@
 import socket
 import hashlib
 from datetime import datetime
+import csv
 
 HOST = '127.0.0.1'  # Standard loopback interface address (localhost)
 PORT = 65432        # Port to listen on
@@ -78,6 +79,33 @@ class Authentication:
         return 0
 
 
+class Saving:
+    def __init__(self,fileName = "data.csv",separateFiles = False):
+        self.fileName = fileName # created file name to store the data
+        self.separateFiles = separateFiles # sotre data in separate files or not (humidty data , temperature data ...ect) , False by default
+        self.csvWriter = None
+
+    def create_file(self):
+        try:
+            self.csvDataFile = open(self.fileName,'w') # didn't use 'with' statement for future use of the open file
+            self.csvWriter = csv.writer(self.csvDataFile,delimiter = ',')
+            print("csv file {} created".format(self.fileName))
+            return self.csvWriter
+        except Exception as err:
+            print("Error with opening csv file :: {}".format(str(err)))
+
+    def add_data(self,data):
+        try:
+            self.csvWriter.writerows(data) # use the open writer from the create_file methode
+            return 1
+        except Exception as err :
+            print("Error with adding rows :: {}".format(str(err)))
+            return -1
+
+
+
+
+
 with socket.socket(socket.AF_INET,socket.SOCK_STREAM) as serverSocket:
     serverSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) # ensuer reusability of socket connection
     serverSocket.bind((HOST,PORT)) # bind the socket to the specified host,port
@@ -87,10 +115,20 @@ with socket.socket(socket.AF_INET,socket.SOCK_STREAM) as serverSocket:
     authStatus = authObj.esp_authentication() # begin authentication phase
     # test data receiving
     if authStatus == 0:
+        savingData = Saving("data.csv")
+        csvWriter = savingData.create_file()
+        i = 0
+        pdfFile = open("dataFile.txt",'w')
+        if csvWriter != -1:
             while True:
                 data = clientConnection.recv(1024)
+                data = data.decode().rstrip("\r\n") # decode incoming data from binary(Bytes) to ascii
+                rowData = ["HUM%",data,str(datetime.now())]
+                pdfData = "HUM%" + " , " + data + " , " + str(datetime.now()) + "\n"
+                savingData.add_data(rowData) # store data in the csv file
+                pdfFile.write(pdfData) # store data in text file
                 try:
-                    print(data.decode('ascii')) # decode incoming data from binary(Bytes) to ascii
+                    print(rowData)
                 except:
                     print("invalid data")
     else:
