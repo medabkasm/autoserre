@@ -6,6 +6,9 @@ from authentication import Authentication
 from drive_deployement import Deployement
 import os
 import json
+from colors import *
+
+
 
 HOST = '127.0.0.1'  # Standard loopback interface address (localhost)
 PORT = 65432        # Port to listen on
@@ -39,19 +42,19 @@ def main():
                 fileName = "data" + str(datetime.now()) + fileFormat
                 savingData = Saving(fileName)
                 fileStatus = savingData.create_file()
-                print("start receiving data from client for {} file\n".format(fileName))
+                print(CYELLOW+"start receiving data from client for {} file\n".format(fileName)+CEND)
                 if fileStatus == 0:
                     while True:
                         try:
                             data = clientConnection.recv(1024)
                             data = data.decode().rstrip("\r\n") # decode incoming data from binary(Bytes) to ascii
                         except Exception as err:
-                            print("Error :: connection closed from client :: {}".format(str(err)))
+                            print(CRED+"Error :: connection closed from client :: {}".format(str(err))+CEND)
                             RUN = False
                             break
 
                         if "end" in data :
-                            print("\ndone with file {}".format(fileName))
+                            print(CYELLOW+"\ndone with file {}".format(fileName)+CEND)
                             # done with 24h data file and upload it to google drive
                             fileStatus = savingData.close_file() # close file writer
                             if fileStatus == 0 and driveAuthStatus:
@@ -79,7 +82,7 @@ def main():
                             break
 
         else:
-            print("authentication failed")
+            print(CRED+"authentication failed"+CEND)
 
 if __name__ == "__main__":
     main()

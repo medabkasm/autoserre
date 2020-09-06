@@ -1,4 +1,6 @@
 import csv # for saving module
+from colors import *
+
 
 class Saving:
     def __init__(self,fileName,separateFiles = False):
@@ -13,21 +15,21 @@ class Saving:
         if self.fileFormat == "csv" or self.fileFormat == "txt":
             try:
                 self.__dataFile = open(self.fileName,"w") # didn't use 'with' statement for future use of the open file
-                print("\nfile {} created".format(self.fileName))
+                print(CGREEN+"\nfile {} created".format(self.fileName)+CEND)
             except Exception as err:
-                print("Error :: file {} cannot be created :: {}".format(str(err)))
+                print(CRED+"Error :: file {} cannot be created :: {}".format(str(err))+CEND)
 
             if self.fileFormat == "csv":
                 try:
                     self.__csvWriter = csv.writer(self.__dataFile,delimiter = ',')
                     return 0
                 except Exception as err:
-                    print("Error :: with opening csv writer :: {}".format(str(err)))
+                    print(CRED+"Error :: with opening csv writer :: {}".format(str(err))+CEND)
                     return -1
             else:
                 return 0
         else:
-            print("Error :: unkown file format :: supports only .txt and .csv formats")
+            print(CRED+"Error :: unkown file format :: supports only .txt and .csv formats"+CEND)
             return -1
 
 
@@ -40,10 +42,10 @@ class Saving:
                     self.__csvWriter.writerow(data) # use the open writer from the create_file methode
                     return 0
                 except Exception as err :
-                    print("Error :: during with row to {} file :: {}".format(self.__dataFile,str(err)))
+                    print(CRED+"Error :: during with row to {} file :: {}".format(self.__dataFile,str(err))+CEND)
                     return -1
             else:
-                print("Error :: data for csv file must be a list")
+                print(CRED+"Error :: data for csv file must be a list"+CEND)
                 return -1
         else:
             if isinstance(data,str):
@@ -52,19 +54,19 @@ class Saving:
                     self.__dataFile.write(data + "\n")
                     return 0
                 except Exception as err:
-                    print("Error :: during writing data to {} file :: {}".format(self.__dataFile,str(err)))
+                    print(CRED+"Error :: during writing data to {} file :: {}".format(self.__dataFile,str(err))+CEND)
                     return -1
             else:
-                print("Error :: data for txt file must a string")
+                print(CRED+"Error :: data for txt file must a string"+CEND)
                 return -1
 
     def close_file(self):
         try:
             self.__dataFile.close()
             self.__csvWriter = None
-            print("file {} closed succefully".format(self.fileName))
+            print(CGREEN+"file {} closed succefully".format(self.fileName)+CEND)
             return 0
 
         except Exception as err:
-            print("Error :: cannot close file {} succefully :: {}".format(self.fileName,str(err)))
+            print(CRED+"Error :: cannot close file {} succefully :: {}".format(self.fileName,str(err))+CEND)
             return -1
