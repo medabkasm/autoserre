@@ -23,21 +23,25 @@ with socket.socket(socket.AF_INET,socket.SOCK_STREAM) as clientSocket:
     clientSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) # ensuer reusability of socket connection
     authentication(clientSocket,"mohamed","1234")
 
-    # test data sending
-    i = 0
-
-    for i in range(0,3):
-        j = 0
-        for j in range(0,10):
-            data = str(int(random()*100)).encode("ascii")
+    currentTime = time.time()
+    oneDay = 10 # seconds in one day
+    begin = currentTime
+    while True:
+        endtime = time.time()
+        if ( endtime - currentTime ) > oneDay :
+            data = "end".encode("ascii") # send a flag to the webserver to upload the daily file to google drive
             clientSocket.send(data)
-            time.sleep(0.5)
+            serverStatus = clientSocket.recv(1024).decode().rstrip("\r\n") # receive a to start again data transmission
+            if "begin" in serverStatus:
+                currentTime = time.time()
+                continue
+        elif ( endtime - begin ) > 60 :
+            break
 
-        data = "end".encode("ascii")
-        clientSocket.send(data)
-        serverStatus = clientSocket.recv(1024).decode().rstrip("\r\n")
-        if "begin" in serverStatus:
-            continue
+        data = str(int(random()*100)).encode("ascii") # data readed from esp
+        clientSocket.send(data) # send data to the webserver
+        time.sleep(0.5)
+
 
 
     clientSocket.send("done".encode("ascii"))
