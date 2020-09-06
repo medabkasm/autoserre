@@ -13,14 +13,13 @@ class Saving:
         if self.fileFormat == "csv" or self.fileFormat == "txt":
             try:
                 self.__dataFile = open(self.fileName,"w") # didn't use 'with' statement for future use of the open file
-                print("file {} created".format(self.fileName))
+                print("\nfile {} created".format(self.fileName))
             except Exception as err:
                 print("Error :: file {} cannot be created :: {}".format(str(err)))
 
             if self.fileFormat == "csv":
                 try:
                     self.__csvWriter = csv.writer(self.__dataFile,delimiter = ',')
-                    print("csv writer created")
                     return 0
                 except Exception as err:
                     print("Error :: with opening csv writer :: {}".format(str(err)))
@@ -58,3 +57,14 @@ class Saving:
             else:
                 print("Error :: data for txt file must a string")
                 return -1
+
+    def close_file(self):
+        try:
+            self.__dataFile.close()
+            self.__csvWriter = None
+            print("file {} closed succefully".format(self.fileName))
+            return 0
+
+        except Exception as err:
+            print("Error :: cannot close file {} succefully :: {}".format(self.fileName,str(err)))
+            return -1

@@ -59,9 +59,3 @@ class Deployement: # class responsible for google drive api
         except Exception as err:
             print("Error :: file {} cannot be uploaded :: {}".format(self.filePath,str(err)))
             return -1
-
-
-obj = Deployement()
-obj.drive_auth()
-obj.set_data('./data.txt','data.txt')
-obj.upload_file()
