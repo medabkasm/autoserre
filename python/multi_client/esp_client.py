@@ -23,12 +23,14 @@ def authentication(clientConnection,userName,password):
 
 RUN = True
 oneDay = 10 # seconds in one day
-while RUN:
-    try:
-        with socket.socket(socket.AF_INET,socket.SOCK_STREAM) as clientSocket:
-            clientSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) # ensuer reusability of socket connection
-            #authentication(clientSocket,"mohamed","1234")
-            clientSocket.connect((HOST,PORT))
+
+with socket.socket(socket.AF_INET,socket.SOCK_STREAM) as clientSocket:
+    clientSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) # ensuer reusability of socket connection
+    #authentication(clientSocket,"mohamed","1234")
+    clientSocket.connect((HOST,PORT))
+
+    while RUN:
+        try:
             serverStatus = clientSocket.recv(1024).decode().rstrip("\r\n") # receive a to start again data transmissin
             if "STR" in serverStatus:
                 print(CGREEN+serverStatus+CEND)
@@ -45,13 +47,14 @@ while RUN:
                             serverStatus = "RECV"
                             clientSocket.send(serverStatus.encode("ascii"))
                             print(CYELLOW+serverStatus+CEND)
+                            time.sleep(4)
                             break
 
                     data = str(int(random()*100)).encode("ascii") # data readed from esp
                     clientSocket.send(data) # send data to the webserver
                     time.sleep(0.5)
 
-    except Exception as err :
-        print(CRED+"Error :: connection error :: {}".format(str(err))+CEND)
-        RUN = False
-        break
+        except Exception as err :
+            print(CRED+"Error :: connection error :: {}".format(str(err))+CEND)
+            RUN = False
+            break
