@@ -17,13 +17,23 @@ PORT = 65432        # Port to listen on
 
 CREATED_FILE = True
 FILE_WRITER = None
+CLOSE_CONNECTION = False
+CLOSE_FILE_WRITER = False
 
+
+class EndConnection(Exception):
+    # raised to stop program
+    pass
 
 def handler(clientConnection,clientAddress):
 
     global CREATED_FILE
     global FILE_WRITER
+    global CLOSE_CONNECTION
+    global CLOSE_FILE_WRITER
+
     STATUS_FLAG = "STR"
+
 
     while CREATED_FILE != True:
         while True:
@@ -36,30 +46,36 @@ def handler(clientConnection,clientAddress):
                     print(CYELLOW+"start receiving data from client {}\n".format(clientAddress)+CEND)
 
                     while True:
-                        data = clientConnection.recv(1024)
-                        data = data.decode().rstrip("\r\n") # decode incoming data from binary(Bytes) to ascii
+                        if CLOSE_CONNECTION != True :
+                            data = clientConnection.recv(1024)
+                            data = data.decode().rstrip("\r\n") # decode incoming data from binary(Bytes) to ascii
 
-                        if data:
-                            if "END" in data:
-                                STATUS_FLAG = "STP"
-                                clientConnection.send(STATUS_FLAG.encode("ascii")) # stop flag to stop data transmission
-                                data = clientConnection.recv(1024).decode().rstrip("\r\n") # receive flag from the client
-                                if "RECV" in data:
-                                    FILE_WRITER.close_file()
-                                    #clientConnection.close()
-                                    CREATED_FILE = True
-                                    STATUS_FLAG = "STR"
-                                    break
+                            if data:
+                                if "END" in data:
+                                    STATUS_FLAG = "STP"
+                                    clientConnection.send(STATUS_FLAG.encode("ascii")) # stop flag to stop data transmission
+                                    data = clientConnection.recv(1024).decode().rstrip("\r\n") # receive flag from the client
+                                    if "RECV" in data:
+                                        FILE_WRITER.close_file()
+                                        CREATED_FILE = True
+                                        STATUS_FLAG = "STR"
+                                        break
+                                if "CLS" in data:
+                                    CLOSE_CONNECTION = True
 
-                            rowData = [clientAddress[0],clientAddress[1],"HUM%",data,str(datetime.now())] # for csv file
+                                rowData = [clientAddress[0],clientAddress[1],"HUM%",data,str(datetime.now())] # for csv file
 
-                            txtData = str(clientAddress[0]) + " , " + str(clientAddress[1]) + " , " + "HUM%" + " , " + data + " , " + str(datetime.now()) + "\n"# for txt file
-                            savingStatus = FILE_WRITER.add_data(rowData) # store data in the csv file
-                            if savingStatus == 0:
-                                print(txtData)
+                                txtData = str(clientAddress[0]) + " , " + str(clientAddress[1]) + " , " + "HUM%" + " , " + data + " , " + str(datetime.now()) + "\n"# for txt file
+                                if FILE_WRITER:
+                                    savingStatus = FILE_WRITER.add_data(rowData) # store data in the csv file
+                                    if savingStatus == 0:
+                                        print(txtData)
 
                         else:
-                            return -1
+                            clientConnection.close()
+                            print(CYELLOW+"Stop running"+CEND)
+                            CLOSE_FILE_WRITER = True
+                            return 2
 
 
             except Exception as err:
@@ -69,8 +85,14 @@ def handler(clientConnection,clientAddress):
 def file_handler():
     global CREATED_FILE
     global FILE_WRITER
+    global CLOSE_FILE_WRITER
     while True:
-        while CREATED_FILE:
+        if CREATED_FILE or CLOSE_FILE_WRITER:
+            if CLOSE_FILE_WRITER:
+                time.sleep(2)
+                FILE_WRITER.close_file()
+                return 2
+
             fileFormat = ".csv"
             fileName = "HUM%" + str(datetime.now()) + fileFormat
             savingData = Saving(fileName)
